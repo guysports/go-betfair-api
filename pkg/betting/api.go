@@ -30,6 +30,7 @@ type (
 		ListMarketCatalogue(filter *types.MarketFilter, maxResults int, marketProjection []string) ([]types.MarketCatalogueWrapper, error)
 		ListMarketBook(marketIds []string, priceProjection *types.PriceProjection, orderProjection string, matchProjection string) ([]types.MarketBookWrapper, error)
 		ListRunnerBook(marketId string, selectionId int, priceProjection *types.PriceProjection, orderProjection string, matchProjection string) ([]types.MarketBookWrapper, error)
+		ListCurrentOrders() (*types.CurrentOrdersWrapper, error)
 	}
 )
 
@@ -193,5 +194,27 @@ func (a *API) ListRunnerBook(marketId string, selectionId int, priceProjection *
 	}
 	var result []types.MarketBookWrapper
 	_ = json.Unmarshal(buf, &result)
+	return result, nil
+}
+
+func (a *API) ListCurrentOrders() (*types.CurrentOrdersWrapper, error) {
+	buf, err := a.Client.Do(betfairId, "listCurrentOrders", nil, &types.MarketFilterParams{
+		DateRange: &types.TimeRange{},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var result *types.CurrentOrdersWrapper
+	_ = json.Unmarshal(buf, &result)
+	return result, nil
+}
+
+func (a *API) PlaceOrder(params *types.PlaceInstructionParams) (*types.PlaceExecutionReport, error) {
+	buf, err := a.Client.Do(betfairId, "placeOrder", nil, &params)
+	if err != nil {
+		return nil, err
+	}
+	var result *types.PlaceExecutionReport
+	_ = json.Unmarshal(buf, result)
 	return result, nil
 }

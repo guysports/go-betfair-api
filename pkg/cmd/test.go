@@ -211,6 +211,44 @@ func (t *Test) Run(globals *types.Globals) error {
 			}
 			fmt.Println(tw.Render())
 		}
+	case "listcurrentorders":
+		currentOrders, err := client.ListCurrentOrders()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Current positions placed\n")
+		for _, order := range currentOrders.Orders {
+			fmt.Printf("BetId: %s\n", order.BetId)
+			fmt.Printf("  Placed £%.2f at %.2f\n", order.PriceSize.Size, order.PriceSize.Price)
+		}
+	case "placeorder":
+		event, err := getEventID(client)
+		if err != nil {
+			return err
+		}
+		filter := types.MarketFilter{
+			EventIds:        []string{event.ID},
+			MarketTypeCodes: []string{"MATCH_ODDS"},
+		}
+		catalogue, err := client.ListMarketCatalogue(&filter, 1, []string{"RUNNER_METADATA"})
+		if err != nil {
+			return err
+		}
+		marketBook, err := client.ListMarketBook([]string{catalogue[0].MarketId}, &types.PriceProjection{PriceData: []string{"EX_BEST_OFFERS"}}, "EXECUTABLE", "ROLLED_UP_BY_AVG_PRICE")
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Placing £2 bet on marketID %s", marketBook[0].MarketId)
+		params := types.PlaceInstructionParams {
+			MarketID: marketBook[0].MarketId,
+			Instructions: []types.PlaceInstruction {
+				{
+					OrderType: 
+				}
+			},
+		}	
+
 	default:
 		fmt.Printf("The operation %s is not recognised\n", t.Operation)
 	}

@@ -11,7 +11,7 @@ const (
 type (
 	TransportInterface interface {
 		Authenticate() (*Authenticate, error)
-		Do(id int, method string, filter *MarketFilter, params *MarketFilterParams) ([]byte, error)
+		Do(id int, method string, filter *MarketFilter, additionalParams interface{}) ([]byte, error)
 	}
 	// Login and Authenticate
 	Globals struct {
@@ -28,17 +28,21 @@ type (
 	}
 
 	Params struct {
-		Filter           *MarketFilter    `json:"filter,omitempty"`
-		Granularity      *string          `json:"granularity,omitempty"`
-		MaxResults       int              `json:"maxResults,omitempty"`
-		MarketId         string           `json:"marketId,omitempty"`
-		MarketIds        []string         `json:"marketIds,omitempty"`
-		SelectionId      int              `json:"selectionId,omitempty"`
-		PriceProjection  *PriceProjection `json:"priceProjection,omitempty"`
-		OrderProjection  string           `json:"orderProjection,omitempty"`
-		MatchProjection  string           `json:"matchProjection,omitempty"`
-		MarketProjection []string         `json:"marketProjection,omitempty"`
-		Locale           string           `json:"locale,omitempty"`
+		Filter              *MarketFilter      `json:"filter,omitempty"`
+		Instructions        []PlaceInstruction `json:"instructions,omitempty"`
+		Granularity         *string            `json:"granularity,omitempty"`
+		MaxResults          int                `json:"maxResults,omitempty"`
+		MarketId            string             `json:"marketId,omitempty"`
+		MarketIds           []string           `json:"marketIds,omitempty"`
+		SelectionId         int                `json:"selectionId,omitempty"`
+		PriceProjection     *PriceProjection   `json:"priceProjection,omitempty"`
+		OrderProjection     string             `json:"orderProjection,omitempty"`
+		MatchProjection     string             `json:"matchProjection,omitempty"`
+		MarketProjection    []string           `json:"marketProjection,omitempty"`
+		Locale              string             `json:"locale,omitempty"`
+		CustomerRef         string             `json:"customerRef,omitempty"`
+		CustomerStrategyRef string             `json:"customerStrategyRef,omitempty"`
+		DateRange           TimeRange          `json:"dateRange"`
 	}
 
 	JsonError struct {
@@ -54,10 +58,10 @@ type (
 	}
 
 	JsonRPCResponse struct {
-		JsonRPC string        `json:"jsonrpc"`
-		Result  []interface{} `json:"result"`
-		Error   *JsonError    `json:"error,omitempty"`
-		ID      int           `json:"id"`
+		JsonRPC string      `json:"jsonrpc"`
+		Result  interface{} `json:"result"`
+		Error   *JsonError  `json:"error,omitempty"`
+		ID      int         `json:"id"`
 	}
 
 	Authenticate struct {
@@ -102,6 +106,14 @@ type (
 		PriceProjection  *PriceProjection
 		OrderProjection  string
 		MatchProjection  string
+		DateRange        *TimeRange
+	}
+
+	PlaceInstructionParams struct {
+		MarketID            string
+		Instructions        []PlaceInstruction
+		CustomerRef         string
+		CustomerStrategyRef string
 	}
 
 	PriceProjection struct {
@@ -217,10 +229,62 @@ type (
 	}
 
 	PlaceInstruction struct {
-		OrderType   string  `json:"orderType"`
-		SelectionId int     `json:"selectionId"`
-		Handicap    float32 `json:"handicap"`
-		Side        string  `json:"side"`
-		LimitOrder
+		OrderType        string  `json:"orderType"`
+		SelectionId      int     `json:"selectionId"`
+		Handicap         float32 `json:"handicap"`
+		Side             string  `json:"side"`
+		LimitOrder       Price   `json:"limitOrder"`
+		CustomerOrderRef string  `json:"customeOrderRef"`
+	}
+
+	CurrentOrder struct {
+		BetId               string  `json:"betId"`
+		MarketId            string  `json:"marketId"`
+		SelectionId         string  `json:"selectionId"`
+		Handicap            float32 `json:"handicap"`
+		PriceSize           Price   `json:"priceSize"`
+		BspLiability        float32 `json:"bspLiability"`
+		Side                string  `json:"side"`
+		Status              string  `json:"status"`
+		PersistanceType     string  `json:"persistanceType"`
+		OrderType           string  `json:"orderType"`
+		PlacedDate          string  `json:"placedDate"`
+		MatchedDate         string  `json:"matchedDate"`
+		AveragePriceMatched float32 `json:"averagePriceMatched"`
+		SizeMatched         float32 `json:"sizeMatched"`
+		SizeRemaining       float32 `json:"sizeRemaining"`
+		SizeLapsed          float32 `json:"sizeLapsed"`
+		SizeCancelled       float32 `json:"sizeCancelled"`
+		SizeVoided          float32 `json:"sizeVoided"`
+		RegulatorCode       string  `json:"regulatorCode"`
+	}
+
+	Price struct {
+		Price float32 `json:"price"`
+		Size  float32 `json:"size"`
+	}
+
+	CurrentOrdersWrapper struct {
+		Orders        []CurrentOrder `json:"currentOrders"`
+		MoreAvailable bool           `json:"moreAvailable"`
+	}
+
+	PlaceInstructionReport struct {
+		Status           string           `json:"status"`
+		Instruction      PlaceInstruction `json:"instruction"`
+		CustomerOrderRef string           `json:"customerOrderRef"`
+		OrderType        string           `json:"orderType"`
+		Side             string           `json:"side"`
+	}
+	PlaceExecutionReport struct {
+		Status              string                   `json:"status"`
+		CustomerRef         string                   `json:"customerRef"`
+		MarketID            string                   `json:"marketId"`
+		InstructionReports  []PlaceInstructionReport `json:"instructionReports"`
+		BetId               string                   `json:"betId"`
+		PlacedDate          string                   `json:"placedDate"`
+		AveragePriceMatched float32                  `json:"averagePriceMatched"`
+		SizeMatched         float32                  `json:"sizeMatched"`
+		OrderStatus         string                   `json:"orderStatus"`
 	}
 )

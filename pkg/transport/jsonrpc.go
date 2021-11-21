@@ -114,11 +114,24 @@ func (r *JsonRPCClient) Authenticate() (*types.Authenticate, error) {
 	return &authenticate, nil
 }
 
-func (r *JsonRPCClient) Do(id int, method string, filter *types.MarketFilter, marketParams *types.MarketFilterParams) ([]byte, error) {
+func (r *JsonRPCClient) Do(id int, method string, filter *types.MarketFilter, additionalParams interface{}) ([]byte, error) {
 
+	params := types.Params{}
+	if additionalParams != nil {
+		if marketParams, ok := additionalParams.(*types.MarketFilterParams); ok {
+			fmt.Printf("calling create params")
+			params = createParams(filter, marketParams)
+		}
+		if instructionParams, ok := additionalParams.(*types.PlaceInstructionParams); ok {
+			params = createPlaceParams(instructionParams)
+		}
+	} else {
+		params.Filter = filter
+		params.Locale = "en"
+	}
 	query := types.JsonRPC{
 		JsonRPC:   "2.0",
-		RPCParams: createParams(filter, marketParams),
+		RPCParams: params,
 		Method:    fmt.Sprintf("SportsAPING/v1.0/%s", method),
 		ID:        id,
 	}
@@ -144,7 +157,7 @@ func (r *JsonRPCClient) Do(id int, method string, filter *types.MarketFilter, ma
 		return nil, fmt.Errorf("unable to authenticate with error %s [%d]", resp.Status, resp.StatusCode)
 	}
 	buf, _ := ioutil.ReadAll(resp.Body)
-	_ = resp.Body.Close()
+	defer resp.Body.Close()
 
 	var rpcresp types.JsonRPCResponse
 	_ = json.Unmarshal(buf, &rpcresp)
@@ -194,6 +207,30 @@ func createParams(filter *types.MarketFilter, marketParams *types.MarketFilterPa
 		if marketParams.PriceProjection != nil {
 			params.PriceProjection = marketParams.PriceProjection
 		}
+		if marketParams.DateRange != nil {
+			params.DateRange = *marketParams.DateRange
+		}
+	}
+
+	return params
+}
+
+func createPlaceParams(instructionParams *types.PlaceInstructionParams) types.Params {
+	params := types.Params{
+		Locale: "en",
+	}
+
+	if instructionParams.CustomerRef != "" {
+		params.CustomerRef = instructionParams.CustomerRef
+	}
+	if instructionParams.CustomerStrategyRef != "" {
+		params.CustomerStrategyRef = instructionParams.CustomerStrategyRef
+	}
+	if instructionParams.MarketID != "" {
+		params.MarketId = instructionParams.MarketID
+	}
+	if instructionParams.Instructions != nil {
+		params.Instructions = instructionParams.Instructions
 	}
 
 	return params
