@@ -85,6 +85,8 @@ func NewJsonRPCClient(ctx context.Context, config *types.Config) (*JsonRPCClient
 }
 
 func (r *JsonRPCClient) Authenticate() (*types.Authenticate, error) {
+	// Load a session key if it hasn't expired yet
+
 	body := []byte(fmt.Sprintf("username=%s&password=%s", r.Config.User, r.Config.Password))
 	req, err := retryablehttp.NewRequest(http.MethodPost, authenticateUrl, bytes.NewBuffer(body))
 	if err != nil {
@@ -119,7 +121,6 @@ func (r *JsonRPCClient) Do(id int, method string, filter *types.MarketFilter, ad
 	params := types.Params{}
 	if additionalParams != nil {
 		if marketParams, ok := additionalParams.(*types.MarketFilterParams); ok {
-			fmt.Printf("calling create params")
 			params = createParams(filter, marketParams)
 		}
 		if instructionParams, ok := additionalParams.(*types.PlaceInstructionParams); ok {

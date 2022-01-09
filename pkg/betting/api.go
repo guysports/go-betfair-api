@@ -3,6 +3,7 @@ package betting
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -31,6 +32,7 @@ type (
 		ListMarketBook(marketIds []string, priceProjection *types.PriceProjection, orderProjection string, matchProjection string) ([]types.MarketBookWrapper, error)
 		ListRunnerBook(marketId string, selectionId int, priceProjection *types.PriceProjection, orderProjection string, matchProjection string) ([]types.MarketBookWrapper, error)
 		ListCurrentOrders() (*types.CurrentOrdersWrapper, error)
+		PlaceOrders(params *types.PlaceInstructionParams) (*types.PlaceExecutionReport, error)
 	}
 )
 
@@ -48,6 +50,7 @@ func NewAPI(ctx context.Context, config *types.Config) (*API, error) {
 func (a *API) ListEventTypes(filter *types.MarketFilter) ([]types.EventTypeWrapper, error) {
 	buf, err := a.Client.Do(betfairId, "listEventTypes", filter, nil)
 	if err != nil {
+		fmt.Printf("Error is %s\n", err.Error())
 		return nil, err
 	}
 
@@ -209,8 +212,8 @@ func (a *API) ListCurrentOrders() (*types.CurrentOrdersWrapper, error) {
 	return result, nil
 }
 
-func (a *API) PlaceOrder(params *types.PlaceInstructionParams) (*types.PlaceExecutionReport, error) {
-	buf, err := a.Client.Do(betfairId, "placeOrder", nil, &params)
+func (a *API) PlaceOrders(params *types.PlaceInstructionParams) (*types.PlaceExecutionReport, error) {
+	buf, err := a.Client.Do(betfairId, "placeOrders", nil, params)
 	if err != nil {
 		return nil, err
 	}

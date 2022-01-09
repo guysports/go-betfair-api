@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/guysports/go-betfair-api/pkg/betting"
@@ -19,6 +20,11 @@ type (
 		Password   string `help:"Password for the Betfair account"`
 		Operation  string `help:"Betfair operation to query"`
 	}
+)
+
+const (
+	PremierLeague = "10932509"
+	FACup         = "30558"
 )
 
 func (t *Test) Run(globals *types.Globals) error {
@@ -86,16 +92,18 @@ func (t *Test) Run(globals *types.Globals) error {
 		}
 		filter := types.MarketFilter{
 			EventTypeIds:    []string{"1"},
-			CompetitionIds:  []string{"10932509"},
+			CompetitionIds:  []string{PremierLeague, FACup},
 			MarketStartTime: &eventsBefore,
 		}
 		events, err := client.ListEvents(&filter)
 		if err != nil {
 			return err
 		}
-		fmt.Println("Premier League Fixtures in next 7 days")
+		fmt.Println("Premier League or FACup Fixtures in next 7 days")
 		for _, event := range events {
-			fmt.Printf("Event Type ID %s, Fixture %s, Start Time %s, Number of Markets %d\n", event.Event.ID, event.Event.Name, event.Event.OpenDate, event.MarketCount)
+			if strings.Contains(event.Event.Name, " v ") {
+				fmt.Printf("Event Type ID %s, Fixture %s, Start Time %s, Number of Markets %d\n", event.Event.ID, event.Event.Name, event.Event.OpenDate, event.MarketCount)
+			}
 		}
 
 	case "listmarkettypes":
@@ -150,6 +158,7 @@ func (t *Test) Run(globals *types.Globals) error {
 		}
 		fmt.Printf("Selections for %s market in fixture %s (%s)\n", catalogue[0].MarketName, event.Name, catalogue[0].MarketId)
 		for _, entry := range catalogue[0].Selections {
+
 			fmt.Printf("Selection ID %d, Selection %s, \n", entry.SelectionId, entry.Name)
 		}
 
@@ -170,7 +179,7 @@ func (t *Test) Run(globals *types.Globals) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Market Book for match odds for fixture %s\n", catalogue[0].MarketName)
+		fmt.Printf("Market Book for match odds for fixture %s (%s)\n", catalogue[0].MarketName, catalogue[0].MarketId)
 		for _, runner := range marketBook[0].Runners {
 			tw := table.NewWriter()
 			name := findSelectionName(catalogue[0].Selections, runner.SelectionID)
@@ -178,6 +187,9 @@ func (t *Test) Run(globals *types.Globals) error {
 			tw.AppendHeader(table.Row{"AvailableToBack", "", "AvailableToLay", ""})
 			tw.AppendHeader(table.Row{"Odds", "Amount", "Odds", "Amount"})
 			for i := range runner.Exchange.AvailableToBack {
+				if i >= len(runner.Exchange.AvailableToLay) {
+					continue
+				}
 				tw.AppendRow([]interface{}{runner.Exchange.AvailableToBack[i].Price, runner.Exchange.AvailableToBack[i].Size, runner.Exchange.AvailableToLay[i].Price, runner.Exchange.AvailableToLay[i].Size})
 			}
 			fmt.Println(tw.Render())
@@ -207,6 +219,9 @@ func (t *Test) Run(globals *types.Globals) error {
 			tw.AppendHeader(table.Row{"AvailableToBack", "", "AvailableToLay", ""})
 			tw.AppendHeader(table.Row{"Odds", "Amount", "Odds", "Amount"})
 			for i := range runner.Exchange.AvailableToBack {
+				if i >= len(runner.Exchange.AvailableToLay) {
+					continue
+				}
 				tw.AppendRow([]interface{}{runner.Exchange.AvailableToBack[i].Price, runner.Exchange.AvailableToBack[i].Size, runner.Exchange.AvailableToLay[i].Price, runner.Exchange.AvailableToLay[i].Size})
 			}
 			fmt.Println(tw.Render())
@@ -240,14 +255,26 @@ func (t *Test) Run(globals *types.Globals) error {
 		}
 
 		fmt.Printf("Placing £2 bet on marketID %s", marketBook[0].MarketId)
-		params := types.PlaceInstructionParams {
+		params := types.PlaceInstructionParams{
 			MarketID: marketBook[0].MarketId,
-			Instructions: []types.PlaceInstruction {
+			Instructions: []types.PlaceInstruction{
 				{
-					OrderType: 
-				}
+					OrderType:   "LIMIT",
+					SelectionId: marketBook[0].Runners[0].SelectionID,
+					Side:        "BACK",
+					LimitOrder: types.Price{
+						Price: marketBook[0].Runners[0].Exchange.AvailableToBack[0].Price,
+						Size:  2.0,
+					},
+				},
 			},
-		}	
+			CustomerRef: "testplaceorder",
+		}
+		orderReport, err := client.PlaceOrders(&params)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Order placed %s, status %s, matched %.2f\n", orderReport.BetId, orderReport.OrderStatus, orderReport.SizeMatched)
 
 	default:
 		fmt.Printf("The operation %s is not recognised\n", t.Operation)
@@ -261,7 +288,7 @@ func getEventID(client betting.APIInterface) (*types.Detail, error) {
 		To: to,
 	}
 	filter := types.MarketFilter{
-		CompetitionIds:  []string{"10932509"},
+		CompetitionIds:  []string{PremierLeague, FACup},
 		MarketStartTime: &eventsBefore,
 	}
 	events, err := client.ListEvents(&filter)
