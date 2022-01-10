@@ -84,6 +84,10 @@ func NewJsonRPCClient(ctx context.Context, config *types.Config) (*JsonRPCClient
 	}, nil
 }
 
+func (r *JsonRPCClient) SetSessionKey(key string) {
+	r.AuthData.SessionToken = key
+}
+
 func (r *JsonRPCClient) Authenticate() (*types.Authenticate, error) {
 	// Load a session key if it hasn't expired yet
 

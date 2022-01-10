@@ -11,6 +11,7 @@ const (
 type (
 	TransportInterface interface {
 		Authenticate() (*Authenticate, error)
+		SetSessionKey(key string)
 		Do(id int, method string, filter *MarketFilter, additionalParams interface{}) ([]byte, error)
 	}
 	// Login and Authenticate
