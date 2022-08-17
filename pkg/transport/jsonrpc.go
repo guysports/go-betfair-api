@@ -30,21 +30,24 @@ const (
 )
 
 func NewJsonRPCClient(ctx context.Context, config *types.Config) (*JsonRPCClient, error) {
-	var cacert []byte
-	var err error
-	if len(config.RootCAPath) > 0 {
-		cacert, err = ioutil.ReadFile(config.RootCAPath)
-	} else {
-		cacert, err = ioutil.ReadFile(defaultRootCA)
-	}
+	// var cacert []byte
+	// var err error
+	// if len(config.RootCAPath) > 0 {
+	// 	cacert, err = ioutil.ReadFile(config.RootCAPath)
+	// } else {
+	// 	cacert, err = ioutil.ReadFile(defaultRootCA)
+	// }
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// CA certificate pool
+	// caCertPool := x509.NewCertPool()
+	// caCertPool.AppendCertsFromPEM(cacert)
+	caCertPool, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, err
 	}
-
-	// CA certificate pool
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(cacert)
-
 	// Keypair
 	certificate, err := tls.LoadX509KeyPair(config.CertPath, config.KeyPath)
 	if err != nil {
