@@ -26,25 +26,29 @@ type (
 const (
 	authenticateUrl = "https://identitysso-cert.betfair.com/api/certlogin"
 	jsonRPCUrl      = "https://api.betfair.com/exchange/betting/json-rpc/v1"
-	defaultRootCA   = "certs/rootca.pem"
 )
 
 func NewJsonRPCClient(ctx context.Context, config *types.Config) (*JsonRPCClient, error) {
-	// var cacert []byte
-	// var err error
-	// if len(config.RootCAPath) > 0 {
-	// 	cacert, err = ioutil.ReadFile(config.RootCAPath)
-	// } else {
-	// 	cacert, err = ioutil.ReadFile(defaultRootCA)
-	// }
-	// if err != nil {
-	// 	return nil, err
-	// }
+	var cacert []byte
+	var caCertPool *x509.CertPool
+	var err error
 
-	// CA certificate pool
-	// caCertPool := x509.NewCertPool()
-	// caCertPool.AppendCertsFromPEM(cacert)
-	caCertPool, err := x509.SystemCertPool()
+	// Support a custom truststore
+	if len(config.RootCAPath) > 0 {
+		cacert, err = ioutil.ReadFile(config.RootCAPath)
+		if err != nil {
+			return nil, err
+		}
+		caCertPool = x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(cacert)
+	} else {
+		// Use the OS pool of CA certs
+		caCertPool, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
