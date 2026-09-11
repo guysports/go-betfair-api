@@ -217,7 +217,9 @@ func (a *API) PlaceOrders(params *types.PlaceInstructionParams) (*types.PlaceExe
 	if err != nil {
 		return nil, err
 	}
-	var result *types.PlaceExecutionReport
-	_ = json.Unmarshal(buf, result)
-	return result, nil
+	var result types.PlaceExecutionReport
+	if err := json.Unmarshal(buf, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
